@@ -113,19 +113,6 @@ La carpeta `data/` contiene 11 tablas que forman el modelo de la biblioteca (reg
 | `usuario` | 400 | 12 | Usuarios con su rol (Bibliotecario, Externo, Estudiante, Docente, Administrativo) |
 
 
-### Relaciones principales
-
-```mermaid
-erDiagram
-    LIBRO ||--o{ EJEMPLAR : "id_libro"
-    UBICACION ||--o{ EJEMPLAR : "id_ubicacion"
-    PRESTAMO ||--o{ PRESTAMO_EJEMPLAR : "id_prestamo"
-    EJEMPLAR ||--o{ PRESTAMO_EJEMPLAR : "id_ejemplar"
-    USUARIO ||--o{ PRESTAMO : "id_usuario"
-    LIBRO }o--o{ AUTOR : "autor_libro"
-    LIBRO }o--o{ GENERO : "libro_genero"
-    EDITORIAL ||--o{ LIBRO : "id_editorial"
-```
 
 ### Diccionario de las columnas que usa el código
 
@@ -202,19 +189,6 @@ Libros sin ningún ejemplar disponible hoy: 42 de 1200 (3.5%)
 
 `cargar_datos.py` es la base: los otros dos módulos de análisis importan `cargar_todo()` y trabajan sobre el diccionario que devuelve. `main.py` solo orquesta; `eda_proyecto.py` se ejecuta aparte.
 
-### Cómo se decide si un ejemplar está disponible
-
-```mermaid
-flowchart TD
-    A[Ejemplar] --> B{"¿Aparece en algún<br/>préstamo?"}
-    B -- No --> D[Disponible]
-    B -- Sí --> C["Tomar el préstamo<br/>más reciente<br/>(fecha e id como desempate)"]
-    C --> E{"estado en<br/>prestamo_ejemplar"}
-    E -- Devuelto --> D
-    E -- Prestado --> P[Prestado]
-    E -- Perdido --> L[Perdido]
-    E -- Danado --> X[Dañado]
-```
 
 ### Decisiones de diseño
 
