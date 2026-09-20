@@ -22,7 +22,6 @@ Proyecto en Python (dockerizado) que carga las tablas de una biblioteca universi
 12. [Próximos pasos](#12-próximos-pasos)
 13. [Apéndice: reproducir las cifras complementarias](#13-apéndice-reproducir-las-cifras-complementarias)
 
----
 
 ## 1. Descripción general
 
@@ -53,7 +52,7 @@ La base de datos **no guarda directamente** si un ejemplar está disponible. Ese
 - **Matplotlib** para los gráficos.
 - **Docker / Docker Compose** para un entorno reproducible.
 
----
+
 
 ## 2. Historia del proyecto
 
@@ -66,7 +65,7 @@ El proyecto se construyó por etapas:
 5. **`eda_proyecto.py`.** El análisis exploratorio: estadística descriptiva (promedio, máximo, mínimo, desviación estándar), relación entre stock y préstamos y candidatos a comprar más ejemplares.
 6. **`main.py`.** El punto de entrada que orquesta la carga de datos y el análisis para el chatbot.
 
----
+
 
 ## 3. Estructura del repositorio
 
@@ -93,7 +92,7 @@ ia-python-biblioteca/
     └── eda_proyecto.py      # Estadística descriptiva y hallazgos
 ```
 
----
+
 
 ## 4. Los datos
 
@@ -113,7 +112,6 @@ La carpeta `data/` contiene 11 tablas que forman el modelo de la biblioteca (reg
 | `ubicacion` | 60 | 2 | Ubicación física: "Zona A - Estante 1 - Nivel 1" (6 zonas × 10 ubicaciones) |
 | `usuario` | 400 | 12 | Usuarios con su rol (Bibliotecario, Externo, Estudiante, Docente, Administrativo) |
 
-Los préstamos cubren desde el **2022-01-02** hasta el **2025-12-28**.
 
 ### Relaciones principales
 
@@ -152,7 +150,7 @@ Aunque los CSV tienen más columnas, el análisis se apoya solo en estas:
 - Un ejemplar con estado `Prestado` nunca tiene `fecha_devolucion`, y uno `Devuelto` siempre la tiene: las dos columnas son coherentes entre sí.
 - Los 1 200 libros tienen al menos un ejemplar y el `stock` coincide con el número real de ejemplares.
 
----
+
 
 ## 5. Cómo ejecutarlo
 
@@ -202,19 +200,6 @@ Libros sin ningún ejemplar disponible hoy: 42 de 1200 (3.5%)
 
 ## 6. Arquitectura y decisiones de diseño
 
-### Cómo se conectan los módulos
-
-```mermaid
-flowchart LR
-    CSV[("data/*.csv<br/>11 tablas")] --> CD["cargar_datos.py<br/>leer_datos · cargar_todo · mostrar_resumen"]
-    CD --> MAIN["main.py"]
-    CD --> AC["analisis_chatbot.py"]
-    CD --> EDA["eda_proyecto.py"]
-    MAIN -->|"llama a main()"| AC
-    AC --> G1["outputs/*.png"]
-    EDA --> G2["outputs/graficos/*.png"]
-```
-
 `cargar_datos.py` es la base: los otros dos módulos de análisis importan `cargar_todo()` y trabajan sobre el diccionario que devuelve. `main.py` solo orquesta; `eda_proyecto.py` se ejecuta aparte.
 
 ### Cómo se decide si un ejemplar está disponible
@@ -243,7 +228,7 @@ flowchart TD
 | **NumPy para las estadísticas** | Cálculo vectorizado y funciones ya probadas (`mean`, `std`, `corrcoef`) | La desviación es la poblacional (`ddof=0`) |
 | **Dos scripts de análisis separados** | Separar "qué responde el chatbot" de "qué descubre el análisis" | `main.py` no ejecuta el EDA (ver [sección 11](#11-observaciones-y-mejoras-pendientes)) |
 
----
+
 
 ## 7. Explicación del código, función por función
 
@@ -378,7 +363,6 @@ Define un servicio `python` con contenedor `ia_python_biblioteca`. Monta cuatro 
 
 **`requirements.txt`**: `numpy`, `pandas`, `matplotlib`, `scikit-learn` y `jupyter`, sin versiones fijadas.
 
----
 
 ## 8. Del análisis al chatbot: cómo se usarían las funciones
 
@@ -428,7 +412,6 @@ Con los datos actuales devuelve, por ejemplo:
 
 > Este fragmento es un **ejemplo ilustrativo**: no forma parte del repositorio actual. Para probarlo, ejecútalo desde `src/`.
 
----
 
 ## 9. Análisis de resultados
 
@@ -565,135 +548,6 @@ Los tres indicadores reales caen dentro del rango de la simulación. **Esto no p
 - Hay una lista concreta de 65 libros con 3 o más préstamos y 3 o menos ejemplares que sirve como punto de partida para decidir compras, siempre con las salvedades de la sección siguiente.
 - La mitad de los préstamos devueltos llegan tarde, y hay un 21 % de préstamos sin cerrar: un dato de calidad y de gestión que el chatbot podría aprovechar (recordatorios de devolución).
 
----
 
-## 10. Cómo interpretar los resultados (limitaciones)
-
-1. **No hay una columna de "estado actual".** La disponibilidad se **deduce** del último préstamo de cada ejemplar. Si el sistema real registra devoluciones, pérdidas o daños por otra vía, esta deducción no las vería.
-2. **Muchos ejemplares "Prestado" vienen de préstamos antiguos.** De los 181 ejemplares que figuran como `Prestado`, **113 (62,4 %)** corresponden a préstamos anteriores a 2025 (38 de 2022, 40 de 2023 y 35 de 2024; solo 68 son de 2025). Como esos préstamos nunca tuvieron fecha de devolución, pueden ser copias realmente sin devolver (en cuyo caso el 92 % de disponibilidad es correcto) o devoluciones que nunca se registraron (en cuyo caso la disponibilidad real sería mayor). Conviene validarlo con la biblioteca antes de mostrar al usuario un "no disponible".
-3. **El estado se mide a fecha de corte.** El último préstamo es del 2025-12-28; el análisis es una foto de ese momento, no del día de hoy.
-4. **Los conteos son históricos y no se normalizan por tiempo.** Un libro con 6 préstamos en cuatro años no es "muy prestado" en términos absolutos. Además, no se tiene en cuenta cuándo se adquirió cada ejemplar (la tabla `ejemplar` sí guarda `fecha_adquisicion`, pero no se usa).
-5. **Cifras pequeñas.** El máximo es 7 préstamos por libro; diferencias de uno o dos préstamos entre dos títulos no son significativas. Por eso el ranking del top 10 y la lista de candidatos a compra deben leerse como una **primera aproximación**, y no como una recomendación cerrada.
-6. **Correlación no es causalidad.** La relación stock–préstamos (0,49) es en gran parte aritmética: más ejemplares implican más préstamos posibles. Una métrica más justa para priorizar compras sería **préstamos por ejemplar**.
-7. **Datos aparentemente sintéticos.** Hay textos de relleno, URLs de portada con dominio `.local` y un `limite_prestamos` que no depende del rol. Los patrones son útiles para practicar el método, pero no deben tomarse como conclusiones sobre una biblioteca real.
-
----
-
-## 11. Observaciones y mejoras pendientes
-
-Puntos detectados al revisar el repositorio:
-
-1. **`.dockerignore` tiene texto de más.** La primera línea es `cat > .dockerignore <<'EOF'` y la última es `EOF`: son restos del comando de terminal con el que se creó el archivo. Docker las trata como patrones sin efecto, pero deben eliminarse.
-2. **La imagen no incluye los datos.** `.dockerignore` excluye `data`, y el `Dockerfile` solo copia `src/`. Funciona con `docker compose` porque `data/` se monta como volumen, pero un `docker run` de la imagen sola no encontraría los CSV.
-3. **`main.py` no ejecuta el EDA.** Si se quiere un único comando, se puede importar `eda_proyecto` y llamar a `eda_proyecto.main()` como tercer paso.
-4. **Falta la carpeta `notebooks/`** en el repositorio (el `docker-compose.yml` la monta y `jupyter` está en `requirements.txt`). Git no guarda carpetas vacías; basta añadir un archivo `.gitkeep` o el primer cuaderno.
-5. **Dependencias sin usar.** El código solo usa `numpy` y `matplotlib` (más la librería estándar); `pandas`, `scikit-learn` y `jupyter` están en `requirements.txt` pero no se usan en `src/`. Además, no tienen versiones fijadas, lo que puede dar resultados distintos en el futuro.
-6. **`top_libros_prestados` usa `ejemplar_a_libro[...]`**, mientras que `construir_stock_prestamos` usa `.get(...)`. Con los datos actuales no falla, pero si un `prestamo_ejemplar` apuntara a un ejemplar inexistente, la primera lanzaría `KeyError`.
-7. **`usuario.csv` incluye la columna `clave`** con contraseñas en texto plano. Parecen datos de prueba, pero si el repositorio es público conviene aclararlo o eliminar la columna.
-8. **Verificación de integridad hecha durante la revisión:** en los 1 200 libros, el `stock` de `libro.csv` coincide exactamente con el número de ejemplares en `ejemplar.csv`, lo que respalda usar cualquiera de las dos fuentes. Tampoco hay filas de `prestamo_ejemplar` que apunten a ejemplares inexistentes, ni préstamos sin ejemplares.
-9. **Los CSV se leen dos veces con `main.py`**: una en el paso 1 y otra dentro de `analisis_chatbot.main()`. Se resolvería haciendo que `analisis_chatbot.main()` reciba `datos` como parámetro opcional.
-10. **No hay pruebas automáticas.** Funciones como `estado_de_cada_ejemplar` o `libros_alta_demanda_bajo_stock` son fáciles de probar con tablas pequeñas inventadas (`pytest` ya está contemplado en `.gitignore`).
-11. **Los títulos no llevan tilde en los datos** (`teoria`, `Produccion`); es una característica de los CSV, no un error del código, pero conviene tenerlo presente al buscar títulos desde un chatbot (por ejemplo, normalizando el texto antes de comparar).
-
----
-
-## 12. Próximos pasos
-
-Ideas ordenadas de menor a mayor esfuerzo:
-
-1. **Limpiar el repositorio:** corregir `.dockerignore`, añadir `notebooks/.gitkeep`, fijar versiones en `requirements.txt` y quitar las dependencias que no se usan.
-2. **Un único comando:** que `main.py` ejecute también el EDA.
-3. **Guardar el informe:** además de imprimir en consola, escribir los resultados en un archivo (por ejemplo `outputs/resumen.txt` o `.json`) para que el chatbot los consuma.
-4. **Convertir `buscar_libro` en una función del proyecto** (sección 8), con búsqueda que ignore tildes y mayúsculas.
-5. **Mejorar la métrica de demanda:** usar préstamos por ejemplar y limitar el conteo a una ventana reciente (por ejemplo, últimos 12 meses).
-6. **Analizar los préstamos sin cerrar** y las multas: recordatorios de devolución, lista de ejemplares pendientes desde hace más de un año.
-7. **Recomendación por género o autor**, usando las tablas `libro_genero` y `autor_libro`, que hoy no se aprovechan.
-8. **Notebook de exploración** en `notebooks/`, donde `pandas` sí aporte (por ejemplo, para `groupby` y series de tiempo).
-9. **Conectar con el chatbot real** y comprobar con la biblioteca cómo se registran las devoluciones, pérdidas y daños.
-
----
-
-## 13. Apéndice: reproducir las cifras complementarias
-
-Los siguientes fragmentos no forman parte del repositorio; reproducen los números de las secciones [9.5](#95-análisis-complementario-de-préstamos-usuarios-y-multas), [9.6](#96-verificación-complementaria-qué-tan-especial-es-la-demanda) y [10](#10-cómo-interpretar-los-resultados-limitaciones). Ejecútalos desde la carpeta `src/`.
-
-### A. Préstamos por año, devoluciones tardías, multas, préstamos abiertos y roles
-
-```python
-from collections import Counter
-from cargar_datos import cargar_todo
-from analisis_chatbot import estado_de_cada_ejemplar
-
-datos = cargar_todo()
-prestamos = datos["prestamo"]
-
-# 1. Préstamos por año
-print(sorted(Counter(p["fecha_prestamo"][:4] for p in prestamos).items()))
-
-# 2. Devoluciones tardías, préstamos sin cerrar y multas
-con_devolucion = [p for p in prestamos if p["fecha_devolucion"]]
-tardias = [p for p in con_devolucion if p["fecha_devolucion"] > p["fecha_limite"]]
-multa_total = sum(float(p["multa"] or 0) for p in prestamos)
-print("sin devolución:", len(prestamos) - len(con_devolucion))
-print("con devolución:", len(con_devolucion), "| tardías:", len(tardias))
-print("multas:", multa_total)
-
-# 3. Año del último préstamo de los ejemplares que figuran como "Prestado"
-fecha_de = {p["id_prestamo"]: p["fecha_prestamo"] for p in prestamos}
-ultimo = {}
-for pe in datos["prestamo_ejemplar"]:
-    clave = (fecha_de[pe["id_prestamo"]], int(pe["id_prestamo"]))
-    if pe["id_ejemplar"] not in ultimo or clave > ultimo[pe["id_ejemplar"]]:
-        ultimo[pe["id_ejemplar"]] = clave
-estados = estado_de_cada_ejemplar(datos)
-print(sorted(Counter(ultimo[e][0][:4] for e, s in estados.items() if s == "Prestado").items()))
-
-# 4. Préstamos por rol
-rol_de = {u["id_usuario"]: u["rol"] for u in datos["usuario"]}
-print(Counter(rol_de[p["id_usuario"]] for p in prestamos).most_common())
-```
-
-Salida esperada:
-
-```
-[('2022', 235), ('2023', 226), ('2024', 211), ('2025', 228)]
-sin devolución: 189
-con devolución: 711 | tardías: 367
-multas: 2488000.0
-[('2022', 38), ('2023', 40), ('2024', 35), ('2025', 68)]
-[('Externo', 208), ('Bibliotecario', 203), ('Estudiante', 181), ('Docente', 180), ('Administrativo', 128)]
-```
-
-### B. Préstamos por ejemplar y simulación al azar
-
-```python
-import numpy as np
-from cargar_datos import cargar_todo
-from eda_proyecto import construir_stock_prestamos
-
-datos = cargar_todo()
-tabla = construir_stock_prestamos(datos["libro"], datos["ejemplar"], datos["prestamo_ejemplar"])
-stock = np.array([f["stock"] for f in tabla])
-prestamos = np.array([f["prestamos"] for f in tabla])
-
-# Préstamos por ejemplar según el nivel de stock
-for n in range(1, 6):
-    m = stock == n
-    print(n, round(prestamos[m].sum() / (n * m.sum()), 3))
-
-# Simulación: repartir los préstamos totales al azar entre todos los ejemplares
-libro_de_ejemplar = np.repeat(np.arange(len(tabla)), stock)
-rng = np.random.default_rng(0)
-sin_prestamo, maximo, correlacion = [], [], []
-for _ in range(500):
-    elegidos = rng.integers(0, len(libro_de_ejemplar), size=int(prestamos.sum()))
-    conteo = np.bincount(libro_de_ejemplar[elegidos], minlength=len(tabla))
-    sin_prestamo.append((conteo == 0).mean())
-    maximo.append(conteo.max())
-    correlacion.append(np.corrcoef(stock, conteo)[0, 1])
-
-print("sin préstamos:", np.mean(sin_prestamo), "| máximo:", np.mean(maximo),
-      "| correlación:", np.mean(correlacion))
-```
 
 Como la simulación usa números aleatorios, los valores pueden variar ligeramente; con `default_rng(0)` deberían acercarse a 0,40, 7,2 y 0,49.
